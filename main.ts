@@ -7,6 +7,8 @@ import { resetTypewriterSrcoll, typewriterScroll } from './extension'
 class CMTypewriterScrollSettings {
   enabled: boolean;
   typewriterOffset: number;
+  paddingEnabled: boolean;
+  fixBottomOnly: boolean;
   zenEnabled: boolean;
   zenOpacity: number;
 }
@@ -14,6 +16,8 @@ class CMTypewriterScrollSettings {
 const DEFAULT_SETTINGS: CMTypewriterScrollSettings = {
   enabled: true,
   typewriterOffset: 0.5,
+  paddingEnabled: true,
+  fixBottomOnly: false,
   zenEnabled: false,
   zenOpacity: 0.25
 }
@@ -26,7 +30,7 @@ export default class CMTypewriterScrollPlugin extends Plugin {
 
   async onload() {
     this.settings = Object.assign(DEFAULT_SETTINGS, await this.loadData());
-    
+
     // enable the plugin (based on settings)
     if (this.settings.enabled) this.enableTypewriterScroll();
     if (this.settings.zenEnabled) this.enableZen();
@@ -50,7 +54,7 @@ export default class CMTypewriterScrollPlugin extends Plugin {
     this.disableZen();
   }
 
-  addCommands() { 
+  addCommands() {
     // add the toggle on/off command
     this.addCommand({
       id: 'toggle-typewriter-sroll',
@@ -72,6 +76,34 @@ export default class CMTypewriterScrollPlugin extends Plugin {
     // assign the new value and call the correct enable / disable function
     (this.settings.enabled = newValue)
       ? this.enableTypewriterScroll() : this.disableTypewriterScroll();
+    // save the new settings
+    this.saveData(this.settings);
+  }
+
+  togglePadding = (newValue: boolean = null) => {
+    // if no value is passed in, toggle the existing value
+    if (newValue === null) newValue = !this.settings.paddingEnabled;
+    this.settings.paddingEnabled = newValue;
+    if (this.settings.enabled) {
+      this.disableTypewriterScroll();
+      // delete the extension, so it gets recreated with the new value
+      delete this.ext;
+      this.enableTypewriterScroll();
+    }
+    // save the new settings
+    this.saveData(this.settings);
+  }
+
+  toggleFixBottomOnly = (newValue: boolean = null) => {
+    // if no value is passed in, toggle the existing value
+    if (newValue === null) newValue = !this.settings.fixBottomOnly;
+    this.settings.fixBottomOnly = newValue;
+    if (this.settings.enabled) {
+      this.disableTypewriterScroll();
+      // delete the extension, so it gets recreated with the new value
+      delete this.ext;
+      this.enableTypewriterScroll();
+    }
     // save the new settings
     this.saveData(this.settings);
   }
@@ -115,7 +147,7 @@ export default class CMTypewriterScrollPlugin extends Plugin {
     });
 
     if (!this.ext) {
-      this.ext = typewriterScroll({ typewriterOffset: this.settings.typewriterOffset });
+      this.ext = typewriterScroll({ typewriterOffset: this.settings.typewriterOffset, paddingOption: this.settings.paddingEnabled, fixBottomOnly: this.settings.fixBottomOnly });
       this.extArray = [this.ext];
       this.registerEditorExtension(this.extArray);
     }
@@ -125,7 +157,7 @@ export default class CMTypewriterScrollPlugin extends Plugin {
       this.app.workspace.updateOptions();
     }
   }
-  
+
   disableTypewriterScroll = () => {
     // remove the class
     document.body.classList.remove('plugin-cm-typewriter-scroll');
@@ -173,14 +205,30 @@ class CMTypewriterScrollSettingTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.enabled)
           .onChange((newValue) => { this.plugin.toggleTypewriterScroll(newValue) })
       );
-    
+
     new Setting(containerEl)
       .setName("Center offset")
       .setDesc("Positions the typewriter text at the specified percentage of the screen")
       .addSlider(slider =>
         slider.setLimits(0, 100, 5)
           .setValue(this.plugin.settings.typewriterOffset * 100)
-          .onChange((newValue) => { this.plugin.changeTypewriterOffset(newValue/100)})
+          .onChange((newValue) => { this.plugin.changeTypewriterOffset(newValue / 100) })
+      );
+
+    new Setting(containerEl)
+      .setName("Toggle Padding")
+      .setDesc("Turns Padding on or off globally")
+      .addToggle(toggle =>
+        toggle.setValue(this.plugin.settings.paddingEnabled)
+          .onChange((newValue) => { this.plugin.togglePadding(newValue) })
+      );
+
+    new Setting(containerEl)
+      .setName("Toggle FixBottomOnly")
+      .setDesc("If turn this on, only below the center offset line would scroll off")
+      .addToggle(toggle =>
+        toggle.setValue(this.plugin.settings.fixBottomOnly)
+          .onChange((newValue) => { this.plugin.toggleFixBottomOnly(newValue) })
       );
 
     new Setting(containerEl)

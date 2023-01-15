@@ -9,6 +9,16 @@ const typewriterOffset = Facet.define<number, number>({
   combine: values => values.length ? Math.min(...values) : 0.5
 })
 
+
+const paddingOption = Facet.define<boolean, boolean>({
+  combine: values => values.length ? values[0] : true
+})
+
+const fixBottomOnly = Facet.define<boolean, boolean>({
+  combine: values => values.length ? values[0] : false
+})
+
+
 const resetTypewriterScrollPaddingPlugin = ViewPlugin.fromClass(class {
   constructor(private view: EditorView) { }
 
@@ -26,6 +36,7 @@ const typewriterScrollPaddingPlugin = ViewPlugin.fromClass(class {
   constructor(private view: EditorView) { }
 
   update(update: ViewUpdate) {
+    if (!update.view.state.facet(paddingOption)) return;
     const offset = (update.view.dom.clientHeight * update.view.state.facet(typewriterOffset)) - (update.view.defaultLineHeight / 2)
     this.topPadding = offset + "px"
     if (this.topPadding != this.view.contentDOM.style.paddingTop) {
@@ -67,6 +78,13 @@ const typewriterScrollPlugin = ViewPlugin.fromClass(class {
         // don't bother with this next part if the range (line??) hasn't changed
         if (prevHead != head) {
           // this is the effect that does the centering
+          const coor = update.view.coordsAtPos(update.state.selection.main.head, -1);
+          // don't why the coordinates get from coordsAsPos can't coincide with clientHeight
+          const hightPos = coor.top - 100;
+          console.debug(`clientTop: ${update.view.dom.clientTop}, clientHeight: ${update.view.dom.clientHeight}, coor: ${coor.top}, ${coor.bottom}`);
+          if ((hightPos / update.view.dom.clientHeight) < update.view.state.facet(typewriterOffset) && update.view.state.facet(fixBottomOnly)) {
+            return;
+          }
           let offset = (update.view.dom.clientHeight * update.view.state.facet(typewriterOffset)) - (update.view.defaultLineHeight / 2);
           const effect = EditorView.scrollIntoView(head, { y: "start", yMargin: offset });
           // const effect = EditorView.scrollIntoView(head, { y: "center" });
@@ -78,9 +96,11 @@ const typewriterScrollPlugin = ViewPlugin.fromClass(class {
   }
 })
 
-export function typewriterScroll(options: {typewriterOffset?: number} = {}): Extension {
+export function typewriterScroll(options: { typewriterOffset?: number, paddingOption?: boolean, fixBottomOnly?: boolean } = {}): Extension {
   return [
     options.typewriterOffset == null ? [] : typewriterOffset.of(options.typewriterOffset),
+    options.paddingOption == null ? [] : paddingOption.of(options.paddingOption),
+    options.fixBottomOnly == null ? [] : fixBottomOnly.of(options.fixBottomOnly),
     typewriterScrollPaddingPlugin,
     typewriterScrollPlugin
   ]
