@@ -21,6 +21,10 @@ jobs:
       id: version
       run: |
         echo "::set-output name=tag::$(git describe --abbrev=0)"
+    - name: Get tag name from ref
+      shell: bash
+      run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+      id: get_tag
     # Build the plugin
     - name: Build
       id: build
@@ -39,10 +43,10 @@ jobs:
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        VERSION: ${{ GITHUB_REF#refs/tags/ }}
+        VERSION: ${{ steps.get_tag.outputs.tag }}
       with:
-        tag_name: ${{ GITHUB_REF#refs/tags/ }}
-        release_name: ${{ GITHUB_REF#refs/tags/ }}
+        tag_name: ${{ steps.get_tag.outputs.tag }}
+        release_name: ${{ steps.get_tag.outputs.tag }}
         draft: false
         prerelease: false
     # Upload the packaged release file
