@@ -39,10 +39,10 @@ jobs:
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        VERSION: ${{ github.ref }}
+        VERSION: ${{ GITHUB_REF#refs/tags/ }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
+        tag_name: ${{ GITHUB_REF#refs/tags/ }}
+        release_name: ${{ GITHUB_REF#refs/tags/ }}
         draft: false
         prerelease: false
     # Upload the packaged release file
