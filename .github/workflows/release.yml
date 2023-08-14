@@ -45,7 +45,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VERSION: ${{ steps.get_tag.outputs.tag }}
       with:
-        tag_name: ${{ steps.get_tag.outputs.tag }}
+        tag_name: 0.2.3
         release_name: ${{ steps.get_tag.outputs.tag }}
         draft: false
         prerelease: false
